@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="MarcTime.Core/MarcTime.Core.csproj" />
+  <Project Path="MarcTime.Data/MarcTime.Data.csproj" />
+  <Project Path="MarcTime.UI/MarcTime.UI.csproj" />
+</Solution>
