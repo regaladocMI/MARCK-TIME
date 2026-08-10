@@ -1,0 +1,32 @@
+﻿## Carpetas de compilación
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+## Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Archivos de configuración con datos sensibles (cadena de conexión SQL Server)
+appsettings.Development.json
+*.local.json
+
+## NuGet
+*.nupkg
+**/packages/*
+
+## Resultados de pruebas
+[Tt]est[Rr]esult*/
+
+## Archivos temporales del SO
+Thumbs.db
+.DS_Store
+
+## Salidas del informe generado (si el .docx se regenera localmente, no versionarlo)
+/informe/*.docx
