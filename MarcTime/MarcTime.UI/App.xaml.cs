@@ -1,38 +1,51 @@
-﻿using System.Diagnostics;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Threading;
+using Microsoft.Extensions.Configuration;
 using MarcTime.Core.Deteccion;
+using MarcTime.Data.Conexion;
+using MarcTime.Data.Repositories;
+using MarcTime.UI.Servicios;
 
 namespace MarcTime.UI;
 
 public partial class App : Application
 {
-    private readonly IDetectorAppActiva _detector = new DetectorAppActiva();
-    private DispatcherTimer? _timerPrueba;
-    private int _muestrasRestantes = 5;
+    private MonitorUsoService? _monitorUso;
+    private DispatcherTimer? _timerMonitoreo;
+
+    // TODO: reemplazar por el usuario real cuando exista login/seleccion de usuario.
+    private const int UsuarioActivoId = 1;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
-        Debug.WriteLine("=== Prueba Seccion 5: cambia de ventana (Alt+Tab) durante los proximos 10 segundos ===");
+        var configuracion = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: false)
+            .AddJsonFile("appsettings.Development.json", optional: true)
+            .Build();
 
-        _timerPrueba = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-        _timerPrueba.Tick += (_, _) =>
-        {
-            AppActivaInfo? appActiva = _detector.ObtenerAppActiva();
+        string cadenaConexion = configuracion.GetConnectionString("MarcTimeDB")
+            ?? throw new InvalidOperationException("Falta la cadena de conexion 'MarcTimeDB' en appsettings.");
 
-            Debug.WriteLine(appActiva is null
-                ? "No se pudo detectar la app activa en este instante."
-                : $"App activa -> Ejecutable: {appActiva.NombreEjecutable} | Titulo: \"{appActiva.TituloVentana}\"");
+        var fabricaConexion = new ConexionFactory(cadenaConexion);
 
-            _muestrasRestantes--;
-            if (_muestrasRestantes <= 0)
-            {
-                _timerPrueba!.Stop();
-                Debug.WriteLine("=== Prueba Seccion 5 finalizada ===");
-            }
-        };
-        _timerPrueba.Start();
+        _monitorUso = new MonitorUsoService(
+            detector: new DetectorAppActiva(),
+            aplicacionRepository: new AplicacionRepository(fabricaConexion),
+            sesionUsoRepository: new SesionUsoRepository(fabricaConexion),
+            usuarioId: UsuarioActivoId);
+
+        _timerMonitoreo = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        _timerMonitoreo.Tick += (_, _) => _monitorUso.Muestrear();
+        _timerMonitoreo.Start();
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        _timerMonitoreo?.Stop();
+        _monitorUso?.DetenerYCerrarSesionActual();
+        base.OnExit(e);
     }
 }

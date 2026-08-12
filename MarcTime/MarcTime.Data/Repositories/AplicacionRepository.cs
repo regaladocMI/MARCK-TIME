@@ -38,6 +38,35 @@ public class AplicacionRepository : IAplicacionRepository
         return conexion.QuerySingleOrDefault<Aplicacion>(sql, new { AplicacionId = aplicacionId });
     }
 
+    public Aplicacion? ObtenerPorNombreEjecutable(int usuarioId, string nombreEjecutable)
+    {
+        const string sql = """
+            SELECT * FROM Aplicaciones
+            WHERE UsuarioId = @UsuarioId AND NombreEjecutable = @NombreEjecutable;
+            """;
+        using var conexion = _fabricaConexion.CrearConexionAbierta();
+        return conexion.QuerySingleOrDefault<Aplicacion>(sql, new { UsuarioId = usuarioId, NombreEjecutable = nombreEjecutable });
+    }
+
+    public Aplicacion ObtenerOCrearPorNombreEjecutable(int usuarioId, string nombreEjecutable, string nombreVisible)
+    {
+        Aplicacion? existente = ObtenerPorNombreEjecutable(usuarioId, nombreEjecutable);
+        if (existente is not null)
+        {
+            return existente;
+        }
+
+        int nuevoId = Crear(new Aplicacion
+        {
+            UsuarioId = usuarioId,
+            NombreEjecutable = nombreEjecutable,
+            NombreVisible = nombreVisible,
+            Activo = true
+        });
+
+        return ObtenerPorId(nuevoId)!;
+    }
+
     public List<Aplicacion> ObtenerTodas(int usuarioId)
     {
         const string sql = "SELECT * FROM Aplicaciones WHERE UsuarioId = @UsuarioId ORDER BY NombreVisible;";
