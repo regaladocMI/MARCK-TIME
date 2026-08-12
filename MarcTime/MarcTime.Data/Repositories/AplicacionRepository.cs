@@ -1,0 +1,74 @@
+﻿using Dapper;
+using MarcTime.Core.Models.Monitoreo;
+using MarcTime.Data.Conexion;
+
+namespace MarcTime.Data.Repositories;
+
+/// <summary>
+/// CRUD sobre Aplicaciones usando Dapper. Actualizar() incluye RowVersion en
+/// el WHERE: si otra persona/proceso modifico la fila entre que la leiste y
+/// que la guardas, la actualizacion afecta 0 filas y el metodo devuelve
+/// false (concurrencia optimista, en vez de pisar el cambio ajeno sin avisar).
+/// </summary>
+public class AplicacionRepository : IAplicacionRepository
+{
+    private readonly IConexionFactory _fabricaConexion;
+
+    public AplicacionRepository(IConexionFactory fabricaConexion)
+    {
+        _fabricaConexion = fabricaConexion;
+    }
+
+    public int Crear(Aplicacion aplicacion)
+    {
+        const string sql = """
+            INSERT INTO Aplicaciones (UsuarioId, CategoriaAplicacionId, NombreEjecutable, NombreVisible, LimiteMinutosDiarios, Activo)
+            OUTPUT INSERTED.AplicacionId
+            VALUES (@UsuarioId, @CategoriaAplicacionId, @NombreEjecutable, @NombreVisible, @LimiteMinutosDiarios, @Activo);
+            """;
+
+        using var conexion = _fabricaConexion.CrearConexionAbierta();
+        return conexion.ExecuteScalar<int>(sql, aplicacion);
+    }
+
+    public Aplicacion? ObtenerPorId(int aplicacionId)
+    {
+        const string sql = "SELECT * FROM Aplicaciones WHERE AplicacionId = @AplicacionId;";
+        using var conexion = _fabricaConexion.CrearConexionAbierta();
+        return conexion.QuerySingleOrDefault<Aplicacion>(sql, new { AplicacionId = aplicacionId });
+    }
+
+    public List<Aplicacion> ObtenerTodas(int usuarioId)
+    {
+        const string sql = "SELECT * FROM Aplicaciones WHERE UsuarioId = @UsuarioId ORDER BY NombreVisible;";
+        using var conexion = _fabricaConexion.CrearConexionAbierta();
+        return conexion.Query<Aplicacion>(sql, new { UsuarioId = usuarioId }).ToList();
+    }
+
+    public bool Actualizar(Aplicacion aplicacion)
+    {
+        const string sql = """
+            UPDATE Aplicaciones
+            SET CategoriaAplicacionId = @CategoriaAplicacionId,
+                NombreEjecutable = @NombreEjecutable,
+                NombreVisible = @NombreVisible,
+                LimiteMinutosDiarios = @LimiteMinutosDiarios,
+                Activo = @Activo,
+                FechaActualizacion = SYSDATETIME()
+            WHERE AplicacionId = @AplicacionId
+              AND RowVersion = @RowVersion;
+            """;
+
+        using var conexion = _fabricaConexion.CrearConexionAbierta();
+        int filasAfectadas = conexion.Execute(sql, aplicacion);
+        return filasAfectadas > 0;
+    }
+
+    public bool Eliminar(int aplicacionId)
+    {
+        const string sql = "DELETE FROM Aplicaciones WHERE AplicacionId = @AplicacionId;";
+        using var conexion = _fabricaConexion.CrearConexionAbierta();
+        int filasAfectadas = conexion.Execute(sql, new { AplicacionId = aplicacionId });
+        return filasAfectadas > 0;
+    }
+}

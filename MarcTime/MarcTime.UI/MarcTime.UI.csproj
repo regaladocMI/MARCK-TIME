@@ -13,4 +13,20 @@
     <ProjectReference Include="..\MarcTime.Data\MarcTime.Data.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
+  </ItemGroup>
+
+
+	<!-- Agregado 04 -->
+	<ItemGroup>
+		<None Update="appsettings.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="appsettings.Development.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
 </Project>
