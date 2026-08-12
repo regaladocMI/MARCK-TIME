@@ -1,4 +1,5 @@
-﻿using MarcTime.Core.Models.Monitoreo;
+﻿using MarcTime.Core.Consultas;
+using MarcTime.Core.Models.Monitoreo;
 
 namespace MarcTime.Data.Repositories;
 
@@ -11,4 +12,8 @@ public interface IAplicacionRepository
     List<Aplicacion> ObtenerTodas(int usuarioId);
     bool Actualizar(Aplicacion aplicacion);
     bool Eliminar(int aplicacionId);
+
+    // --- Seccion 7: limites de tiempo ---
+    bool EstablecerLimiteMinutosDiarios(int aplicacionId, int? limiteMinutos);
+    List<EstadoLimiteAplicacion> ObtenerEstadoLimites(int usuarioId);
 }

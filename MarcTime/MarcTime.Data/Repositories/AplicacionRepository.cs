@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using MarcTime.Core.Consultas;
 using MarcTime.Core.Models.Monitoreo;
 using MarcTime.Data.Conexion;
 
@@ -99,5 +100,38 @@ public class AplicacionRepository : IAplicacionRepository
         using var conexion = _fabricaConexion.CrearConexionAbierta();
         int filasAfectadas = conexion.Execute(sql, new { AplicacionId = aplicacionId });
         return filasAfectadas > 0;
+    }
+
+    public bool EstablecerLimiteMinutosDiarios(int aplicacionId, int? limiteMinutos)
+    {
+        const string sql = """
+            UPDATE Aplicaciones
+            SET LimiteMinutosDiarios = @LimiteMinutos,
+                FechaActualizacion = SYSDATETIME()
+            WHERE AplicacionId = @AplicacionId;
+            """;
+
+        using var conexion = _fabricaConexion.CrearConexionAbierta();
+        int filasAfectadas = conexion.Execute(sql, new { AplicacionId = aplicacionId, LimiteMinutos = limiteMinutos });
+        return filasAfectadas > 0;
+    }
+
+    public List<EstadoLimiteAplicacion> ObtenerEstadoLimites(int usuarioId)
+    {
+        const string sql = """
+            SELECT
+                a.AplicacionId,
+                a.NombreVisible,
+                a.LimiteMinutosDiarios,
+                ISNULL(r.MinutosTotales, 0) AS MinutosUsadosHoy
+            FROM Aplicaciones a
+            LEFT JOIN ResumenUsoDiario r
+                ON r.AplicacionId = a.AplicacionId AND r.Fecha = CAST(SYSDATETIME() AS DATE)
+            WHERE a.UsuarioId = @UsuarioId AND a.Activo = 1
+            ORDER BY a.NombreVisible;
+            """;
+
+        using var conexion = _fabricaConexion.CrearConexionAbierta();
+        return conexion.Query<EstadoLimiteAplicacion>(sql, new { UsuarioId = usuarioId }).ToList();
     }
 }
