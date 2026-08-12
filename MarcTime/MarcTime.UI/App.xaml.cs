@@ -1,65 +1,38 @@
-﻿using System.Windows;
-using Microsoft.Extensions.Configuration;
-using MarcTime.Core.Models.Monitoreo;
-using MarcTime.Data.Conexion;
-using MarcTime.Data.Repositories;
+﻿using System.Diagnostics;
+using System.Windows;
+using System.Windows.Threading;
+using MarcTime.Core.Deteccion;
 
 namespace MarcTime.UI;
 
 public partial class App : Application
 {
+    private readonly IDetectorAppActiva _detector = new DetectorAppActiva();
+    private DispatcherTimer? _timerPrueba;
+    private int _muestrasRestantes = 5;
+
     protected override void OnStartup(StartupEventArgs e)
     {
-        EjecutarPruebaCrud();
         base.OnStartup(e);
-    }
 
-    private void EjecutarPruebaCrud()
-    {
-        var configuracion = new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: false)
-            .AddJsonFile("appsettings.Development.json", optional: true)
-            .Build();
+        Debug.WriteLine("=== Prueba Seccion 5: cambia de ventana (Alt+Tab) durante los proximos 10 segundos ===");
 
-        string cadenaConexion = configuracion.GetConnectionString("MarcTimeDB")
-            ?? throw new InvalidOperationException("Falta la cadena de conexion 'MarcTimeDB' en appsettings.");
-
-        var fabricaConexion = new ConexionFactory(cadenaConexion);
-        var repositorio = new AplicacionRepository(fabricaConexion);
-
-        // TODO: reemplaza este valor por el UsuarioId real que obtuviste en el paso 4
-        const int usuarioPruebaId = 1;
-
-        int nuevoId = repositorio.Crear(new Aplicacion
+        _timerPrueba = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _timerPrueba.Tick += (_, _) =>
         {
-            UsuarioId = usuarioPruebaId,
-            NombreEjecutable = "chrome.exe",
-            NombreVisible = "Google Chrome",
-            LimiteMinutosDiarios = 120,
-            Activo = true
-        });
+            AppActivaInfo? appActiva = _detector.ObtenerAppActiva();
 
-        var todas = repositorio.ObtenerTodas(usuarioPruebaId);
-        var creada = repositorio.ObtenerPorId(nuevoId);
+            Debug.WriteLine(appActiva is null
+                ? "No se pudo detectar la app activa en este instante."
+                : $"App activa -> Ejecutable: {appActiva.NombreEjecutable} | Titulo: \"{appActiva.TituloVentana}\"");
 
-        bool actualizada = false;
-        if (creada is not null)
-        {
-            creada.LimiteMinutosDiarios = 90;
-            actualizada = repositorio.Actualizar(creada);
-        }
-
-        bool eliminada = repositorio.Eliminar(nuevoId);
-
-        MessageBox.Show(
-            $"1. CREATE -> Id generado: {nuevoId}\n" +
-            $"2. READ (todas) -> {todas.Count} aplicacion(es) del usuario\n" +
-            $"3. READ (por id) -> {(creada is not null ? "encontrada: " + creada.NombreVisible : "NO encontrada")}\n" +
-            $"4. UPDATE (limite a 90 min) -> {(actualizada ? "OK" : "FALLO")}\n" +
-            $"5. DELETE -> {(eliminada ? "OK" : "FALLO")}",
-            "MARC TIME - Prueba Seccion 4",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+            _muestrasRestantes--;
+            if (_muestrasRestantes <= 0)
+            {
+                _timerPrueba!.Stop();
+                Debug.WriteLine("=== Prueba Seccion 5 finalizada ===");
+            }
+        };
+        _timerPrueba.Start();
     }
 }
