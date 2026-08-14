@@ -1,22 +1,28 @@
 ﻿namespace MarcTime.Core.Consultas;
 
 /// <summary>
-/// Proyeccion de lectura (no refleja una tabla 1 a 1): cruza el limite
-/// configurado en Aplicaciones con lo realmente usado hoy segun
-/// ResumenUsoDiario. La usa la UI para mostrar progreso, y la Seccion 8
-/// para decidir cuando avisar/cerrar.
+/// Proyeccion de lectura: cruza el limite configurado en Aplicaciones con lo
+/// realmente usado hoy (sesiones cerradas + sesion activa en tiempo real).
+/// Trabaja en SEGUNDOS (no minutos) porque la cuenta regresiva final necesita
+/// precision de segundo a segundo.
 /// </summary>
 public class EstadoLimiteAplicacion
 {
     public int AplicacionId { get; set; }
+    public string NombreEjecutable { get; set; } = string.Empty;
     public string NombreVisible { get; set; } = string.Empty;
     public int? LimiteMinutosDiarios { get; set; }
-    public int MinutosUsadosHoy { get; set; }
+    public int SegundosUsadosHoy { get; set; }
 
-    /// <summary>Null si la app no tiene limite configurado (sin tope).</summary>
+    public int? LimiteSegundosDiarios =>
+        LimiteMinutosDiarios is null ? null : LimiteMinutosDiarios.Value * 60;
+
+    public int? SegundosRestantes =>
+        LimiteSegundosDiarios is null ? null : Math.Max(0, LimiteSegundosDiarios.Value - SegundosUsadosHoy);
+
     public int? MinutosRestantes =>
-        LimiteMinutosDiarios is null ? null : Math.Max(0, LimiteMinutosDiarios.Value - MinutosUsadosHoy);
+        SegundosRestantes is null ? null : SegundosRestantes.Value / 60;
 
     public bool LimiteAlcanzado =>
-        LimiteMinutosDiarios is not null && MinutosUsadosHoy >= LimiteMinutosDiarios.Value;
+        LimiteSegundosDiarios is not null && SegundosUsadosHoy >= LimiteSegundosDiarios.Value;
 }

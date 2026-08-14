@@ -3,7 +3,6 @@ using MarcTime.Data.Conexion;
 using MarcTime.Data.Repositories;
 using MarcTime.UI.Servicios;
 using Microsoft.Extensions.Configuration;
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -32,6 +31,7 @@ public partial class App : Application
 
         var fabricaConexion = new ConexionFactory(cadenaConexion);
 
+        // --- Seccion 6: monitoreo de uso ---
         _monitorUso = new MonitorUsoService(
             detector: new DetectorAppActiva(),
             aplicacionRepository: new AplicacionRepository(fabricaConexion),
@@ -42,35 +42,13 @@ public partial class App : Application
         _timerMonitoreo.Tick += (_, _) => _monitorUso.Muestrear();
         _timerMonitoreo.Start();
 
-        //AÑADIDO SECCIÓN 7
-        var timerPrueba = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
-        timerPrueba.Tick += (_, _) =>
-        {
-            timerPrueba.Stop();
-            EjecutarPruebaLimites(new AplicacionRepository(fabricaConexion));
-        };
-        timerPrueba.Start();
-    }
+        // --- Seccion 8: limites de tiempo (aviso + cuenta regresiva + cierre) ---
+        var aplicacionRepository = new AplicacionRepository(fabricaConexion);
+        var gestorLimites = new GestorLimitesTiempoService(aplicacionRepository, UsuarioActivoId);
 
-    //AGREGANDO MÉTODO NUEVO SECCIÓN 7
-    private void EjecutarPruebaLimites(IAplicacionRepository aplicacionRepository)
-    {
-        // Toma la primera app con uso registrado hoy para la prueba
-        var estados = aplicacionRepository.ObtenerEstadoLimites(UsuarioActivoId);
-        if (estados.Count == 0)
-        {
-            Debug.WriteLine("Prueba Seccion 7: no hay apps registradas todavia.");
-            return;
-        }
-
-        var primeraApp = estados[0];
-        Debug.WriteLine($"Antes -> {primeraApp.NombreVisible}: usado {primeraApp.MinutosUsadosHoy} min, limite {primeraApp.LimiteMinutosDiarios?.ToString() ?? "sin limite"}");
-
-        aplicacionRepository.EstablecerLimiteMinutosDiarios(primeraApp.AplicacionId, 60);
-
-        var estadosActualizados = aplicacionRepository.ObtenerEstadoLimites(UsuarioActivoId);
-        var appActualizada = estadosActualizados.First(a => a.AplicacionId == primeraApp.AplicacionId);
-        Debug.WriteLine($"Despues -> {appActualizada.NombreVisible}: limite {appActualizada.LimiteMinutosDiarios} min, restantes {appActualizada.MinutosRestantes} min, alcanzado: {appActualizada.LimiteAlcanzado}");
+        var timerLimites = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        timerLimites.Tick += (_, _) => gestorLimites.RevisarLimites();
+        timerLimites.Start();
     }
 
     protected override void OnExit(ExitEventArgs e)

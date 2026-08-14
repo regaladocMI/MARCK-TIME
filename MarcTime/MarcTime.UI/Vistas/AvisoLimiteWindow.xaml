@@ -1,0 +1,24 @@
+﻿<Window x:Class="MarcTime.UI.Vistas.AvisoLimiteWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MARC TIME"
+        Width="340" Height="140"
+        WindowStartupLocation="CenterScreen"
+        Topmost="True"
+        ResizeMode="NoResize"
+        WindowStyle="ToolWindow"
+        ShowInTaskbar="False"
+        Background="#1F1F1F">
+    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="16">
+        <TextBlock x:Name="TextoMensaje"
+                   Foreground="White"
+                   FontSize="15"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"/>
+        <Button Content="Entendido"
+                Click="BotonEntendido_Click"
+                Margin="0,16,0,0"
+                Padding="12,4"
+                HorizontalAlignment="Center"/>
+    </StackPanel>
+</Window>

@@ -121,12 +121,23 @@ public class AplicacionRepository : IAplicacionRepository
         const string sql = """
             SELECT
                 a.AplicacionId,
+                a.NombreEjecutable,
                 a.NombreVisible,
                 a.LimiteMinutosDiarios,
-                ISNULL(r.MinutosTotales, 0) AS MinutosUsadosHoy
+                ISNULL(cerradas.SegundosCerrados, 0) + ISNULL(activa.SegundosActiva, 0) AS SegundosUsadosHoy
             FROM Aplicaciones a
-            LEFT JOIN ResumenUsoDiario r
-                ON r.AplicacionId = a.AplicacionId AND r.Fecha = CAST(SYSDATETIME() AS DATE)
+            OUTER APPLY (
+                SELECT SUM(s.DuracionSegundos) AS SegundosCerrados
+                FROM SesionesUso s
+                WHERE s.AplicacionId = a.AplicacionId
+                  AND s.FechaHoraFin IS NOT NULL
+                  AND CAST(s.FechaHoraInicio AS DATE) = CAST(SYSDATETIME() AS DATE)
+            ) cerradas
+            OUTER APPLY (
+                SELECT DATEDIFF(SECOND, s.FechaHoraInicio, SYSDATETIME()) AS SegundosActiva
+                FROM SesionesUso s
+                WHERE s.AplicacionId = a.AplicacionId AND s.FechaHoraFin IS NULL
+            ) activa
             WHERE a.UsuarioId = @UsuarioId AND a.Activo = 1
             ORDER BY a.NombreVisible;
             """;
