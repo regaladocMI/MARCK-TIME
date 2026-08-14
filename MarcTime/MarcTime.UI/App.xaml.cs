@@ -17,6 +17,38 @@ public partial class App : Application
     // TODO: reemplazar por el usuario real cuando exista login/seleccion de usuario.
     private const int UsuarioActivoId = 1;
 
+    //BORRAR EN UI
+    private void EjecutarPruebaTareas(ITareaRepository tareaRepository)
+    {
+        int tareaId = tareaRepository.Crear(new Core.Models.Tareas.Tarea
+        {
+            UsuarioId = UsuarioActivoId,
+            Titulo = "Entregar informe de avance",
+            Descripcion = "Seccion 10 de la hoja de ruta",
+            FechaEntrega = DateTime.Now.AddDays(3),
+            Prioridad = Core.Models.Enums.PrioridadTarea.Alta
+        });
+        Debug.WriteLine($"CREATE Tarea -> Id generado: {tareaId}");
+
+        var pendientes = tareaRepository.ObtenerPendientes(UsuarioActivoId);
+        Debug.WriteLine($"READ (pendientes) -> {pendientes.Count} tarea(s)");
+
+        var proximas = tareaRepository.ObtenerProximasAVencer(UsuarioActivoId, diasAntelacion: 7);
+        Debug.WriteLine($"READ (proximas a vencer, 7 dias) -> {proximas.Count} tarea(s)");
+
+        var tarea = tareaRepository.ObtenerPorId(tareaId)!;
+        tarea.Descripcion = "Descripcion actualizada";
+        bool actualizada = tareaRepository.Actualizar(tarea);
+        Debug.WriteLine($"UPDATE -> {(actualizada ? "OK" : "FALLO")}");
+
+        bool marcada = tareaRepository.MarcarCompletada(tareaId, completada: true);
+        Debug.WriteLine($"MARCAR COMPLETADA -> {(marcada ? "OK" : "FALLO")}");
+
+        bool eliminada = tareaRepository.Eliminar(tareaId);
+        Debug.WriteLine($"DELETE -> {(eliminada ? "OK" : "FALLO")}");
+    }
+
+
     //BORRABLE EN UI
     private void EjecutarPruebaHorarios(ICursoRepository cursoRepository, IHorarioClaseRepository horarioRepository)
     {
@@ -95,6 +127,16 @@ public partial class App : Application
             EjecutarPruebaHorarios(new CursoRepository(fabricaConexion), new HorarioClaseRepository(fabricaConexion));
         };
         timerPrueba9.Start();
+
+
+        //AGREGADO 10
+        var timerPrueba10 = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        timerPrueba10.Tick += (_, _) =>
+        {
+            timerPrueba10.Stop();
+            EjecutarPruebaTareas(new TareaRepository(fabricaConexion));
+        };
+        timerPrueba10.Start();
 
 
         var timerLimites = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
