@@ -28,6 +28,9 @@ public class ServicioNotificaciones : IDisposable
     private readonly ReproductorSonidoService _reproductorSonido = new();
     private readonly int _usuarioId;
 
+    //15
+    public event Action? AbrirSolicitado;
+
     public ServicioNotificaciones(
         IHorarioClaseRepository horarioRepository,
         INotificacionRepository notificacionRepository,
@@ -49,8 +52,11 @@ public class ServicioNotificaciones : IDisposable
         };
 
         var menu = new WinForms.ContextMenuStrip();
+        menu.Items.Add("Abrir MARC TIME", null, (_, _) => AbrirSolicitado?.Invoke());
+        menu.Items.Add(new WinForms.ToolStripSeparator());
         menu.Items.Add("Salir", null, (_, _) => Application.Current.Shutdown());
         _iconoBandeja.ContextMenuStrip = menu;
+        _iconoBandeja.DoubleClick += (_, _) => AbrirSolicitado?.Invoke();
     }
 
     public void RevisarYNotificar()

@@ -1,24 +1,21 @@
-﻿using System.Text;
+﻿using System.ComponentModel;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
-namespace MarcTime.UI
+namespace MarcTime.UI;
+
+public partial class MainWindow : Window
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
-    public partial class MainWindow : Window
+    public MainWindow()
     {
-        public MainWindow()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
+    }
+
+    private void Window_Closing(object sender, CancelEventArgs e)
+    {
+        // La app vive en la bandeja del sistema (Seccion 11): cerrar con la X
+        // no debe terminar el proceso, solo esconder la ventana. Se reabre
+        // con doble clic en el icono de bandeja (ver ServicioNotificaciones).
+        e.Cancel = true;
+        Hide();
     }
 }
