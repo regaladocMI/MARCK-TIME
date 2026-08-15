@@ -1,11 +1,12 @@
-﻿using MarcTime.Core.Deteccion;
+﻿using System.Diagnostics;
+using System.Windows;
+using System.Windows.Threading;
+using Microsoft.Extensions.Configuration;
+using MarcTime.Core.Deteccion;
 using MarcTime.Data;
 using MarcTime.Data.Conexion;
 using MarcTime.Data.Repositories;
 using MarcTime.UI.Servicios;
-using Microsoft.Extensions.Configuration;
-using System.Windows;
-using System.Windows.Threading;
 
 namespace MarcTime.UI;
 
@@ -26,10 +27,9 @@ public partial class App : Application
 
         DapperConfiguracion.Registrar();
 
-        // La app ahora vive en la bandeja del sistema: cerrar la ventana
-        // principal NO debe terminar el proceso (solo "Salir" desde el menu
-        // del icono de bandeja lo hace). ShutdownMode por defecto es
-        // OnLastWindowClose; lo cambiamos para permitir seguir en segundo plano.
+        // La app vive en la bandeja del sistema: cerrar la ventana principal
+        // NO debe terminar el proceso (solo "Salir" desde el menu del icono
+        // de bandeja lo hace).
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
         var configuracion = new ConfigurationBuilder()
@@ -61,7 +61,7 @@ public partial class App : Application
         _timerLimites.Tick += (_, _) => gestorLimites.RevisarLimites();
         _timerLimites.Start();
 
-        // --- Seccion 11: notificaciones de bandeja (horarios y tareas) ---
+        // --- Seccion 11 y 12: notificaciones de bandeja + sonido ---
         _servicioNotificaciones = new ServicioNotificaciones(
             horarioRepository: new HorarioClaseRepository(fabricaConexion),
             tareaRepository: new TareaRepository(fabricaConexion),
@@ -69,9 +69,43 @@ public partial class App : Application
             configuracionNotificacionRepository: new ConfiguracionNotificacionRepository(fabricaConexion),
             usuarioId: UsuarioActivoId);
 
-        _timerNotificaciones = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) }; //cambiado a 10 segundos para pruebas, en producción puede ser más largo
+        _timerNotificaciones = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
         _timerNotificaciones.Tick += (_, _) => _servicioNotificaciones.RevisarYNotificar();
         _timerNotificaciones.Start();
+
+        // --- Seccion 13: prueba temporal de reportes de uso ---
+        var timerPrueba13 = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        timerPrueba13.Tick += (_, _) =>
+        {
+            timerPrueba13.Stop();
+            EjecutarPruebaReportes(new ReporteUsoRepository(fabricaConexion));
+        };
+        timerPrueba13.Start();
+    }
+
+    // --- Seccion 13: prueba temporal, borrar cuando exista una pantalla real de reportes ---
+    private void EjecutarPruebaReportes(IReporteUsoRepository reporteRepository)
+    {
+        DateOnly hoy = DateOnly.FromDateTime(DateTime.Now);
+        DateOnly hace7Dias = hoy.AddDays(-7);
+
+        var porApp = reporteRepository.ObtenerUsoPorApp(UsuarioActivoId, hace7Dias, hoy);
+        Debug.WriteLine($"--- Uso por app (ultimos 7 dias): {porApp.Count} app(s) ---");
+        foreach (var app in porApp)
+        {
+            Debug.WriteLine($"  {app.NombreVisible} [{app.NombreCategoria ?? "sin categoria"}]: {app.MinutosTotales} min");
+        }
+
+        var porDia = reporteRepository.ObtenerUsoPorDia(UsuarioActivoId, hace7Dias, hoy);
+        Debug.WriteLine($"--- Uso por dia: {porDia.Count} dia(s) con registro ---");
+        foreach (var dia in porDia)
+        {
+            Debug.WriteLine($"  {dia.Fecha}: {dia.MinutosTotales} min");
+        }
+
+        var productividad = reporteRepository.ObtenerResumenProductividad(UsuarioActivoId, hace7Dias, hoy);
+        Debug.WriteLine($"--- Productividad: {productividad.PorcentajeProductivo}% productivo ---");
+        Debug.WriteLine($"  Productivo: {productividad.MinutosProductivos} min | No productivo: {productividad.MinutosNoProductivos} min | Sin categoria: {productividad.MinutosSinCategoria} min");
     }
 
     protected override void OnExit(ExitEventArgs e)
