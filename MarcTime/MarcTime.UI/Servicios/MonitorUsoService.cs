@@ -49,7 +49,7 @@ public class MonitorUsoService
         }
 
         var aplicacion = _aplicacionRepository.ObtenerOCrearPorNombreEjecutable(
-            _usuarioId, appActiva.NombreEjecutable, appActiva.NombreEjecutable);
+            _usuarioId, appActiva.NombreEjecutable, appActiva.NombreVisible);
 
         if (aplicacion.AplicacionId == _aplicacionActivaId)
         {

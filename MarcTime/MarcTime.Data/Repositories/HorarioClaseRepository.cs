@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using MarcTime.Core.Consultas;
 using MarcTime.Core.Models.Academico;
 using MarcTime.Data.Conexion;
 
@@ -10,6 +11,22 @@ namespace MarcTime.Data.Repositories;
 /// </summary>
 public class HorarioClaseRepository : IHorarioClaseRepository
 {
+
+    //Agregado 16
+    public List<BloqueHorarioDetalle> ObtenerDetalladoPorUsuario(int usuarioId)
+    {
+        const string sql = """
+            SELECT h.HorarioClaseId, c.CursoId, c.Nombre AS NombreCurso, c.Color,
+                   h.DiaSemana, h.HoraInicio, h.HoraFin, h.Ubicacion
+            FROM HorariosClase h
+            INNER JOIN Cursos c ON c.CursoId = h.CursoId
+            WHERE c.UsuarioId = @UsuarioId
+            ORDER BY h.DiaSemana, h.HoraInicio;
+            """;
+        using var conexion = _fabricaConexion.CrearConexionAbierta();
+        return conexion.Query<Core.Consultas.BloqueHorarioDetalle>(sql, new { UsuarioId = usuarioId }).ToList();
+    }
+
     private readonly IConexionFactory _fabricaConexion;
 
     public HorarioClaseRepository(IConexionFactory fabricaConexion)
@@ -63,7 +80,8 @@ public class HorarioClaseRepository : IHorarioClaseRepository
     {
         const string sql = """
             UPDATE HorariosClase
-            SET DiaSemana = @DiaSemana,
+            SET CursoId = @CursoId,
+                DiaSemana = @DiaSemana,
                 HoraInicio = @HoraInicio,
                 HoraFin = @HoraFin,
                 Ubicacion = @Ubicacion

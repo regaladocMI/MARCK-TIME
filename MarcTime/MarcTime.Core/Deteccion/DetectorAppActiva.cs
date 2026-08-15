@@ -6,8 +6,7 @@ namespace MarcTime.Core.Deteccion;
 
 /// <summary>
 /// Detecta la app en primer plano usando P/Invoke a user32.dll combinado
-/// con Process. Solo funciona en Windows (las funciones nativas que llama
-/// son propias de ese sistema operativo).
+/// con Process. Solo funciona en Windows.
 /// </summary>
 public class DetectorAppActiva : IDetectorAppActiva
 {
@@ -28,7 +27,7 @@ public class DetectorAppActiva : IDetectorAppActiva
         IntPtr handleVentana = GetForegroundWindow();
         if (handleVentana == IntPtr.Zero)
         {
-            return null; // ninguna ventana en primer plano (caso raro, ej. escritorio vacio)
+            return null;
         }
 
         GetWindowThreadProcessId(handleVentana, out uint processId);
@@ -45,20 +44,35 @@ public class DetectorAppActiva : IDetectorAppActiva
             {
                 ProcessId = (int)processId,
                 NombreEjecutable = proceso.ProcessName + ".exe",
+                NombreVisible = ObtenerNombreVisible(proceso),
                 TituloVentana = ObtenerTituloVentana(handleVentana)
             };
         }
         catch (ArgumentException)
         {
-            // El proceso ya no existe: se cerro entre GetWindowThreadProcessId
-            // y este punto. Es una condicion de carrera esperable, no un error.
             return null;
         }
         catch (InvalidOperationException)
         {
-            // El proceso existe pero ya termino (estado inconsistente momentaneo).
             return null;
         }
+    }
+
+    private static string ObtenerNombreVisible(Process proceso)
+    {
+        try
+        {
+            string? descripcion = proceso.MainModule?.FileVersionInfo.FileDescription;
+            if (!string.IsNullOrWhiteSpace(descripcion))
+            {
+                return descripcion;
+            }
+        }
+        catch
+        {
+        }
+
+        return proceso.ProcessName;
     }
 
     private static string ObtenerTituloVentana(IntPtr handleVentana)

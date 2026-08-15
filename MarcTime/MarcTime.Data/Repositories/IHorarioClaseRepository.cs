@@ -1,4 +1,5 @@
-﻿using MarcTime.Core.Models.Academico;
+﻿using MarcTime.Core.Consultas;
+using MarcTime.Core.Models.Academico;
 
 namespace MarcTime.Data.Repositories;
 
@@ -13,4 +14,7 @@ public interface IHorarioClaseRepository
 
     //AGREGADO 11
     List<HorarioClase> ObtenerProximasHoy(int usuarioId, int minutosAntelacion);
+
+    //Agregadoo 16
+    List<BloqueHorarioDetalle> ObtenerDetalladoPorUsuario(int usuarioId);
 }

@@ -12,6 +12,14 @@ namespace MarcTime.Data.Repositories;
 /// </summary>
 public class RestriccionHorarioAppRepository : IRestriccionHorarioAppRepository
 {
+
+    public List<int> ObtenerAplicacionIdsPorHorario(int horarioClaseId)
+    {
+        const string sql = "SELECT AplicacionId FROM RestriccionesHorarioApp WHERE HorarioClaseId = @HorarioClaseId;";
+        using var conexion = _fabricaConexion.CrearConexionAbierta();
+        return conexion.Query<int>(sql, new { HorarioClaseId = horarioClaseId }).ToList();
+    }
+
     private readonly IConexionFactory _fabricaConexion;
 
     public RestriccionHorarioAppRepository(IConexionFactory fabricaConexion)

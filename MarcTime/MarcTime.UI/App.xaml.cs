@@ -76,7 +76,12 @@ public partial class App : Application
         // --- Seccion 15: ventana principal y navegacion ---
         var mainViewModel = new MainViewModel(
             inicio: new InicioViewModel(new ReporteUsoRepository(fabricaConexion), UsuarioActivoId),
-            horario: new HorarioViewModel(),
+            horario: new HorarioViewModel(
+                new HorarioClaseRepository(fabricaConexion),
+                new CursoRepository(fabricaConexion),
+                new AplicacionRepository(fabricaConexion),
+                new RestriccionHorarioAppRepository(fabricaConexion),
+                UsuarioActivoId),
             tareas: new TareasViewModel(),
             historial: new HistorialViewModel(),
             configuracion: new ConfiguracionViewModel());

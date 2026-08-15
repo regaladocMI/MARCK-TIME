@@ -12,4 +12,6 @@ public class AppActivaInfo
     public int ProcessId { get; set; }
     public string NombreEjecutable { get; set; } = string.Empty;
     public string TituloVentana { get; set; } = string.Empty;
+
+    public string NombreVisible { get; set; } = string.Empty;
 }
