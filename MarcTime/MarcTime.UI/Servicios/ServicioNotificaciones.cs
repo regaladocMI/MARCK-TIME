@@ -17,6 +17,9 @@ namespace MarcTime.UI.Servicios;
 /// </summary>
 public class ServicioNotificaciones : IDisposable
 {
+    private readonly IConfiguracionNotificacionRepository _configuracionNotificacionRepository;
+    private readonly ReproductorSonidoService _reproductorSonido = new();
+
     private const int MinutosAntelacionClase = 15;
     private const int HorasAntelacionTarea = 24;
     private const int TipoEventoClaseProxima = 1;
@@ -32,11 +35,13 @@ public class ServicioNotificaciones : IDisposable
         IHorarioClaseRepository horarioRepository,
         ITareaRepository tareaRepository,
         INotificacionRepository notificacionRepository,
+        IConfiguracionNotificacionRepository configuracionNotificacionRepository,
         int usuarioId)
     {
         _horarioRepository = horarioRepository;
         _tareaRepository = tareaRepository;
         _notificacionRepository = notificacionRepository;
+        _configuracionNotificacionRepository = configuracionNotificacionRepository;
         _usuarioId = usuarioId;
 
         _iconoBandeja = new WinForms.NotifyIcon
@@ -71,7 +76,7 @@ public class ServicioNotificaciones : IDisposable
             string mensaje = $"Tu clase empieza a las {horario.HoraInicio:hh\\:mm}" +
                 (string.IsNullOrWhiteSpace(horario.Ubicacion) ? "." : $" en {horario.Ubicacion}.");
 
-            MostrarGlobo("Clase próxima", mensaje);
+            MostrarGlobo("Clase próxima", mensaje, TipoEventoClaseProxima);
 
             _notificacionRepository.Registrar(new Notificacion
             {
@@ -96,7 +101,7 @@ public class ServicioNotificaciones : IDisposable
 
             string mensaje = $"\"{tarea.Titulo}\" vence el {tarea.FechaEntrega:dd/MM HH:mm}.";
 
-            MostrarGlobo("Tarea próxima a vencer", mensaje);
+            MostrarGlobo("Tarea próxima a vencer", mensaje, TipoEventoTareaProxima);
 
             _notificacionRepository.Registrar(new Notificacion
             {
@@ -108,12 +113,18 @@ public class ServicioNotificaciones : IDisposable
         }
     }
 
-    private void MostrarGlobo(string titulo, string mensaje)
+    private void MostrarGlobo(string titulo, string mensaje, int tipoEventoId)
     {
         Debug.WriteLine($"NOTIFICACION -> [{titulo}] {mensaje}");
         _iconoBandeja.BalloonTipTitle = titulo;
         _iconoBandeja.BalloonTipText = mensaje;
         _iconoBandeja.ShowBalloonTip(5000);
+
+        var sonido = _configuracionNotificacionRepository.ResolverSonido(_usuarioId, tipoEventoId);
+        if (sonido.Activo)
+        {
+            _reproductorSonido.Reproducir(sonido.RutaArchivo);
+        }
     }
 
     public void Dispose()

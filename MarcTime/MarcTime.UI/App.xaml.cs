@@ -66,9 +66,10 @@ public partial class App : Application
             horarioRepository: new HorarioClaseRepository(fabricaConexion),
             tareaRepository: new TareaRepository(fabricaConexion),
             notificacionRepository: new NotificacionRepository(fabricaConexion),
+            configuracionNotificacionRepository: new ConfiguracionNotificacionRepository(fabricaConexion),
             usuarioId: UsuarioActivoId);
 
-        _timerNotificaciones = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+        _timerNotificaciones = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) }; //cambiado a 10 segundos para pruebas, en producción puede ser más largo
         _timerNotificaciones.Tick += (_, _) => _servicioNotificaciones.RevisarYNotificar();
         _timerNotificaciones.Start();
     }
