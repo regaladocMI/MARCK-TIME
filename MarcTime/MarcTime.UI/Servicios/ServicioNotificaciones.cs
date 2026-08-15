@@ -8,40 +8,37 @@ namespace MarcTime.UI.Servicios;
 
 /// <summary>
 /// Dueño del icono de bandeja del sistema. Revisa periodicamente horarios
-/// proximos y tareas proximas a vencer, y muestra un globo (balloon tip) por
-/// cada evento nuevo - registrando primero en Notificaciones para no repetir
-/// el mismo aviso el mismo dia (YaSeNotificoHoy).
+/// proximos (Seccion 11) y recordatorios de tarea pendientes (Seccion 14,
+/// reemplaza el aviso unico de 24h por avisos escalonados configurables por
+/// tarea) y muestra un globo + sonido por cada evento nuevo.
 ///
-/// IDs de TiposEvento esperados en la BD (ver seed de datos, Seccion 2):
-///   1 = ClaseProxima, 2 = TareaProxima
+/// IDs de TiposEvento esperados en la BD: 1 = ClaseProxima, 2 = TareaProxima
 /// </summary>
 public class ServicioNotificaciones : IDisposable
 {
-    private readonly IConfiguracionNotificacionRepository _configuracionNotificacionRepository;
-    private readonly ReproductorSonidoService _reproductorSonido = new();
-
     private const int MinutosAntelacionClase = 15;
-    private const int HorasAntelacionTarea = 24;
     private const int TipoEventoClaseProxima = 1;
     private const int TipoEventoTareaProxima = 2;
 
     private readonly WinForms.NotifyIcon _iconoBandeja;
     private readonly IHorarioClaseRepository _horarioRepository;
-    private readonly ITareaRepository _tareaRepository;
     private readonly INotificacionRepository _notificacionRepository;
+    private readonly IConfiguracionNotificacionRepository _configuracionNotificacionRepository;
+    private readonly IRecordatorioTareaRepository _recordatorioTareaRepository;
+    private readonly ReproductorSonidoService _reproductorSonido = new();
     private readonly int _usuarioId;
 
     public ServicioNotificaciones(
         IHorarioClaseRepository horarioRepository,
-        ITareaRepository tareaRepository,
         INotificacionRepository notificacionRepository,
         IConfiguracionNotificacionRepository configuracionNotificacionRepository,
+        IRecordatorioTareaRepository recordatorioTareaRepository,
         int usuarioId)
     {
         _horarioRepository = horarioRepository;
-        _tareaRepository = tareaRepository;
         _notificacionRepository = notificacionRepository;
         _configuracionNotificacionRepository = configuracionNotificacionRepository;
+        _recordatorioTareaRepository = recordatorioTareaRepository;
         _usuarioId = usuarioId;
 
         _iconoBandeja = new WinForms.NotifyIcon
@@ -59,7 +56,7 @@ public class ServicioNotificaciones : IDisposable
     public void RevisarYNotificar()
     {
         RevisarHorariosProximos();
-        RevisarTareasProximas();
+        RevisarRecordatoriosTarea();
     }
 
     private void RevisarHorariosProximos()
@@ -88,27 +85,28 @@ public class ServicioNotificaciones : IDisposable
         }
     }
 
-    private void RevisarTareasProximas()
+    private void RevisarRecordatoriosTarea()
     {
-        var tareas = _tareaRepository.ObtenerProximasAVencer(_usuarioId, diasAntelacion: 1);
+        var pendientes = _recordatorioTareaRepository.ObtenerPendientes(_usuarioId);
 
-        foreach (var tarea in tareas)
+        foreach (var recordatorio in pendientes)
         {
-            if (_notificacionRepository.YaSeNotificoHoy(_usuarioId, TipoEventoTareaProxima, tareaId: tarea.TareaId, horarioClaseId: null))
-            {
-                continue;
-            }
+            string mensaje = recordatorio.MinutosAntelacion >= 1440
+                ? $"\"{recordatorio.Titulo}\" vence en {recordatorio.MinutosAntelacion / 1440} dia(s), el {recordatorio.FechaEntrega:dd/MM HH:mm}."
+                : recordatorio.MinutosAntelacion >= 60
+                    ? $"\"{recordatorio.Titulo}\" vence en {recordatorio.MinutosAntelacion / 60} hora(s)."
+                    : $"\"{recordatorio.Titulo}\" vence en {recordatorio.MinutosAntelacion} minuto(s).";
 
-            string mensaje = $"\"{tarea.Titulo}\" vence el {tarea.FechaEntrega:dd/MM HH:mm}.";
+            MostrarGlobo("Recordatorio de tarea", mensaje, TipoEventoTareaProxima);
 
-            MostrarGlobo("Tarea próxima a vencer", mensaje, TipoEventoTareaProxima);
+            _recordatorioTareaRepository.MarcarEnviado(recordatorio.RecordatorioTareaId);
 
             _notificacionRepository.Registrar(new Notificacion
             {
                 UsuarioId = _usuarioId,
                 TipoEventoId = TipoEventoTareaProxima,
                 Mensaje = mensaje,
-                TareaId = tarea.TareaId
+                TareaId = recordatorio.TareaId
             });
         }
     }

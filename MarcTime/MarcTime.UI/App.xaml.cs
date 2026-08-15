@@ -16,6 +16,7 @@ public partial class App : Application
     private DispatcherTimer? _timerMonitoreo;
     private DispatcherTimer? _timerLimites;
     private DispatcherTimer? _timerNotificaciones;
+    private DispatcherTimer? _timerRestriccionesHorario;
     private ServicioNotificaciones? _servicioNotificaciones;
 
     // TODO: reemplazar por el usuario real cuando exista login/seleccion de usuario.
@@ -26,10 +27,6 @@ public partial class App : Application
         base.OnStartup(e);
 
         DapperConfiguracion.Registrar();
-
-        // La app vive en la bandeja del sistema: cerrar la ventana principal
-        // NO debe terminar el proceso (solo "Salir" desde el menu del icono
-        // de bandeja lo hace).
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
         var configuracion = new ConfigurationBuilder()
@@ -54,64 +51,38 @@ public partial class App : Application
         _timerMonitoreo.Tick += (_, _) => _monitorUso.Muestrear();
         _timerMonitoreo.Start();
 
-        // --- Seccion 8: limites de tiempo (aviso + cuenta regresiva + cierre) ---
+        // --- Seccion 8: limites de tiempo diarios ---
         var gestorLimites = new GestorLimitesTiempoService(new AplicacionRepository(fabricaConexion), UsuarioActivoId);
 
         _timerLimites = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         _timerLimites.Tick += (_, _) => gestorLimites.RevisarLimites();
         _timerLimites.Start();
 
-        // --- Seccion 11 y 12: notificaciones de bandeja + sonido ---
+        // --- Seccion 14: apps restringidas a bloques de horario especificos ---
+        var gestorRestricciones = new GestorRestriccionesHorarioService(new RestriccionHorarioAppRepository(fabricaConexion), UsuarioActivoId);
+
+        _timerRestriccionesHorario = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        _timerRestriccionesHorario.Tick += (_, _) => gestorRestricciones.RevisarRestricciones();
+        _timerRestriccionesHorario.Start();
+
+        // --- Seccion 11, 12 y 14: notificaciones de bandeja + sonido + recordatorios ---
         _servicioNotificaciones = new ServicioNotificaciones(
             horarioRepository: new HorarioClaseRepository(fabricaConexion),
-            tareaRepository: new TareaRepository(fabricaConexion),
             notificacionRepository: new NotificacionRepository(fabricaConexion),
             configuracionNotificacionRepository: new ConfiguracionNotificacionRepository(fabricaConexion),
+            recordatorioTareaRepository: new RecordatorioTareaRepository(fabricaConexion),
             usuarioId: UsuarioActivoId);
 
         _timerNotificaciones = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
         _timerNotificaciones.Tick += (_, _) => _servicioNotificaciones.RevisarYNotificar();
         _timerNotificaciones.Start();
-
-        // --- Seccion 13: prueba temporal de reportes de uso ---
-        var timerPrueba13 = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
-        timerPrueba13.Tick += (_, _) =>
-        {
-            timerPrueba13.Stop();
-            EjecutarPruebaReportes(new ReporteUsoRepository(fabricaConexion));
-        };
-        timerPrueba13.Start();
-    }
-
-    // --- Seccion 13: prueba temporal, borrar cuando exista una pantalla real de reportes ---
-    private void EjecutarPruebaReportes(IReporteUsoRepository reporteRepository)
-    {
-        DateOnly hoy = DateOnly.FromDateTime(DateTime.Now);
-        DateOnly hace7Dias = hoy.AddDays(-7);
-
-        var porApp = reporteRepository.ObtenerUsoPorApp(UsuarioActivoId, hace7Dias, hoy);
-        Debug.WriteLine($"--- Uso por app (ultimos 7 dias): {porApp.Count} app(s) ---");
-        foreach (var app in porApp)
-        {
-            Debug.WriteLine($"  {app.NombreVisible} [{app.NombreCategoria ?? "sin categoria"}]: {app.MinutosTotales} min");
-        }
-
-        var porDia = reporteRepository.ObtenerUsoPorDia(UsuarioActivoId, hace7Dias, hoy);
-        Debug.WriteLine($"--- Uso por dia: {porDia.Count} dia(s) con registro ---");
-        foreach (var dia in porDia)
-        {
-            Debug.WriteLine($"  {dia.Fecha}: {dia.MinutosTotales} min");
-        }
-
-        var productividad = reporteRepository.ObtenerResumenProductividad(UsuarioActivoId, hace7Dias, hoy);
-        Debug.WriteLine($"--- Productividad: {productividad.PorcentajeProductivo}% productivo ---");
-        Debug.WriteLine($"  Productivo: {productividad.MinutosProductivos} min | No productivo: {productividad.MinutosNoProductivos} min | Sin categoria: {productividad.MinutosSinCategoria} min");
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
         _timerMonitoreo?.Stop();
         _timerLimites?.Stop();
+        _timerRestriccionesHorario?.Stop();
         _timerNotificaciones?.Stop();
         _monitorUso?.DetenerYCerrarSesionActual();
         _servicioNotificaciones?.Dispose();

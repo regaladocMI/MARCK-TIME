@@ -98,33 +98,7 @@ public class GestorLimitesTiempoService
 
     private void EjecutarCierre(EstadoLimiteAplicacion estado)
     {
-        Process[] procesos = ObtenerProcesosDeApp(estado.NombreEjecutable);
-        Debug.WriteLine($"CIERRE -> {estado.NombreEjecutable}: {procesos.Length} proceso(s) " +
-            $"[{string.Join(", ", procesos.Select(p => $"PID {p.Id} MainWindow={(p.MainWindowHandle != IntPtr.Zero)}"))}]");
-
-        foreach (Process proceso in procesos)
-        {
-            if (proceso.MainWindowHandle != IntPtr.Zero)
-            {
-                bool solicitado = proceso.CloseMainWindow();
-                Debug.WriteLine($"  CloseMainWindow PID {proceso.Id} -> {solicitado}");
-            }
-        }
-
-        var timerGracia = new DispatcherTimer { Interval = PeriodoGracia };
-        timerGracia.Tick += (_, _) =>
-        {
-            timerGracia.Stop();
-            foreach (Process proceso in ObtenerProcesosDeApp(estado.NombreEjecutable))
-            {
-                if (!proceso.HasExited)
-                {
-                    Debug.WriteLine($"  CIERRE FORZADO Kill() PID {proceso.Id}");
-                    proceso.Kill();
-                }
-            }
-        };
-        timerGracia.Start();
+        CierreAppService.SolicitarCierre(estado.NombreEjecutable);
     }
 
     private static Process[] ObtenerProcesosDeApp(string nombreEjecutable)
