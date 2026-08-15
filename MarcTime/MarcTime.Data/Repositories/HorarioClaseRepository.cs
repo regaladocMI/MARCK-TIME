@@ -80,4 +80,27 @@ public class HorarioClaseRepository : IHorarioClaseRepository
         using var conexion = _fabricaConexion.CrearConexionAbierta();
         return conexion.Execute(sql, new { HorarioClaseId = horarioClaseId }) > 0;
     }
+
+
+
+    //AGREGADO 11
+    public List<HorarioClase> ObtenerProximasHoy(int usuarioId, int minutosAntelacion)
+    {
+        // DiaSemana en la BD: 1=Lunes...7=Domingo. DATEPART(WEEKDAY,...) de SQL
+        // Server depende del DATEFIRST de la sesion; se normaliza con modulo.
+        const string sql = """
+            DECLARE @DiaHoy TINYINT = ((DATEPART(WEEKDAY, SYSDATETIME()) + @@DATEFIRST - 2) % 7) + 1;
+            DECLARE @HoraActual TIME = CAST(SYSDATETIME() AS TIME);
+
+            SELECT h.* FROM HorariosClase h
+            INNER JOIN Cursos c ON c.CursoId = h.CursoId
+            WHERE c.UsuarioId = @UsuarioId
+              AND h.DiaSemana = @DiaHoy
+              AND h.HoraInicio BETWEEN @HoraActual AND DATEADD(MINUTE, @MinutosAntelacion, @HoraActual)
+            ORDER BY h.HoraInicio;
+            """;
+
+        using var conexion = _fabricaConexion.CrearConexionAbierta();
+        return conexion.Query<HorarioClase>(sql, new { UsuarioId = usuarioId, MinutosAntelacion = minutosAntelacion }).ToList();
+    }
 }

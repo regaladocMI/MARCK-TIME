@@ -9,6 +9,14 @@ namespace MarcTime.UI.Servicios;
 /// llevar el registro real de uso. Solo abre una sesion nueva cuando la app
 /// activa CAMBIA respecto al ultimo muestreo; mientras el usuario se queda
 /// en la misma app, la sesion sigue abierta.
+///
+/// Antes de abrir una sesion nueva para una app, verifica si ya existe una
+/// abierta (ObtenerSesionAbierta): puede pasar si en una ejecucion anterior
+/// la app se cerro de forma abrupta (Kill(), boton "Detener" de VS, crash)
+/// sin pasar por OnExit -> queda una sesion "huerfana" con FechaHoraFin NULL.
+/// El indice unico filtrado de SesionesUso (Seccion 2) no permite 2 sesiones
+/// abiertas para la misma app, asi que sin esta verificacion el INSERT
+/// revienta con una excepcion de clave duplicada.
 /// </summary>
 public class MonitorUsoService
 {
@@ -32,17 +40,11 @@ public class MonitorUsoService
         _usuarioId = usuarioId;
     }
 
-    /// <summary>
-    /// Se llama en cada "tick" del timer. Detecta la app activa y, si cambio
-    /// desde el ultimo muestreo, cierra la sesion anterior y abre una nueva.
-    /// </summary>
     public void Muestrear()
     {
         AppActivaInfo? appActiva = _detector.ObtenerAppActiva();
         if (appActiva is null)
         {
-            // Deteccion fallida momentanea (ver Seccion 5): no cerramos ni
-            // abrimos nada, se mantiene la sesion que ya estaba abierta.
             return;
         }
 
@@ -51,7 +53,7 @@ public class MonitorUsoService
 
         if (aplicacion.AplicacionId == _aplicacionActivaId)
         {
-            return; // sigue en la misma app, no hay nada que hacer
+            return;
         }
 
         DateTime ahora = DateTime.Now;
@@ -62,15 +64,21 @@ public class MonitorUsoService
             Debug.WriteLine($"Sesion cerrada -> AplicacionId: {_aplicacionActivaId}, SesionUsoId: {_sesionAbiertaId}");
         }
 
-        _sesionAbiertaId = _sesionUsoRepository.AbrirSesion(aplicacion.AplicacionId, ahora, appActiva.TituloVentana);
+        var sesionHuerfana = _sesionUsoRepository.ObtenerSesionAbierta(aplicacion.AplicacionId);
+        if (sesionHuerfana is not null)
+        {
+            Debug.WriteLine($"Sesion huerfana adoptada -> {aplicacion.NombreVisible} (AplicacionId: {aplicacion.AplicacionId}, SesionUsoId: {sesionHuerfana.SesionUsoId})");
+            _sesionAbiertaId = sesionHuerfana.SesionUsoId;
+        }
+        else
+        {
+            _sesionAbiertaId = _sesionUsoRepository.AbrirSesion(aplicacion.AplicacionId, ahora, appActiva.TituloVentana);
+            Debug.WriteLine($"Sesion abierta -> {aplicacion.NombreVisible} (AplicacionId: {aplicacion.AplicacionId}, SesionUsoId: {_sesionAbiertaId})");
+        }
+
         _aplicacionActivaId = aplicacion.AplicacionId;
-        Debug.WriteLine($"Sesion abierta -> {aplicacion.NombreVisible} (AplicacionId: {aplicacion.AplicacionId}, SesionUsoId: {_sesionAbiertaId})");
     }
 
-    /// <summary>
-    /// Cierra la sesion actualmente abierta. Debe llamarse al cerrar la
-    /// aplicacion (OnExit) para no dejar sesiones huerfanas.
-    /// </summary>
     public void DetenerYCerrarSesionActual()
     {
         if (_sesionAbiertaId is not null)

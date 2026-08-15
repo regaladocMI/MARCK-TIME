@@ -10,4 +10,7 @@ public interface IHorarioClaseRepository
     List<HorarioClase> ObtenerTodosPorUsuario(int usuarioId);
     bool Actualizar(HorarioClase horario);
     bool Eliminar(int horarioClaseId);
+
+    //AGREGADO 11
+    List<HorarioClase> ObtenerProximasHoy(int usuarioId, int minutosAntelacion);
 }

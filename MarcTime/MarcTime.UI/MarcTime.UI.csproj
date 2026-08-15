@@ -3,6 +3,8 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
+	  <!-- AGREGADO 11 -->
+	  <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
@@ -27,6 +29,15 @@
 		<None Update="appsettings.Development.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- El SDK agrega automaticamente "global using System.Windows.Forms;" al
+         activar UseWindowsForms, lo que choca con System.Windows.Application
+         (WPF). Como en ServicioNotificaciones.cs ya usamos el alias "WinForms."
+         para las clases que si necesitamos (NotifyIcon, ContextMenuStrip), no
+         hace falta el using global - lo quitamos para eliminar la ambiguedad. -->
+		<Using Remove="System.Windows.Forms" />
 	</ItemGroup>
 
 </Project>
