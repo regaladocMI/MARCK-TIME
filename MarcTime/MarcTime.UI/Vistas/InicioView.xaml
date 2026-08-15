@@ -1,0 +1,31 @@
+﻿<UserControl x:Class="MarcTime.UI.Vistas.InicioView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <TextBlock Text="Resumen de hoy" Foreground="White" FontSize="24" FontWeight="Bold" Margin="0,0,0,4"/>
+        <TextBlock FontSize="13" Margin="0,0,0,20" Foreground="#AAAAAA">
+            <Run Text="Productividad: "/>
+            <Run Text="{Binding Productividad.PorcentajeProductivo, Mode=OneWay, StringFormat={}{0}%}" Foreground="#4CD964" FontWeight="Bold"/>
+        </TextBlock>
+
+        <ItemsControl ItemsSource="{Binding UsoDeHoy}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Background="#1F1F1F" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{Binding NombreVisible}" Foreground="White" FontSize="14"/>
+                                <TextBlock Text="{Binding NombreCategoria, TargetNullValue='Sin categoría'}" Foreground="#888888" FontSize="11"/>
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="{Binding MinutosTotales, StringFormat={}{0} min}" Foreground="#DDDDDD" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>
