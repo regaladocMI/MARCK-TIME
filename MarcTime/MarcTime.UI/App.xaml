@@ -1,6 +1,8 @@
 ﻿<Application x:Class="MarcTime.UI.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:comun="clr-namespace:MarcTime.UI.Comun">
     <Application.Resources>
+        <comun:BoolAVisibilidadConverter x:Key="BoolAVisibilidad"/>
     </Application.Resources>
 </Application>

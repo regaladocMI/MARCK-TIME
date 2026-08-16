@@ -1,12 +1,13 @@
-﻿using System.Windows;
-using System.Windows.Threading;
-using Microsoft.Extensions.Configuration;
-using MarcTime.Core.Deteccion;
+﻿using MarcTime.Core.Deteccion;
 using MarcTime.Data;
 using MarcTime.Data.Conexion;
 using MarcTime.Data.Repositories;
 using MarcTime.UI.Servicios;
 using MarcTime.UI.ViewModels;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
+using System.Windows;
+using System.Windows.Threading;
 
 namespace MarcTime.UI;
 
@@ -87,8 +88,14 @@ public partial class App : Application
                 new CursoRepository(fabricaConexion),
                 new RecordatorioTareaRepository(fabricaConexion),
                 UsuarioActivoId),
-            historial: new HistorialViewModel(),
-            configuracion: new ConfiguracionViewModel());
+            historial: new HistorialViewModel(new ReporteUsoRepository(fabricaConexion), UsuarioActivoId),
+            configuracion: new ConfiguracionViewModel(
+                new TipoEventoRepository(fabricaConexion),
+                new SonidoRepository(fabricaConexion),
+                new ConfiguracionNotificacionRepository(fabricaConexion),
+                new CursoRepository(fabricaConexion),
+                new ReproductorSonidoService(),
+                UsuarioActivoId));
 
         _mainWindow = new MainWindow { DataContext = mainViewModel };
         _mainWindow.Show();
@@ -100,6 +107,22 @@ public partial class App : Application
             _mainWindow.WindowState = WindowState.Normal;
             _mainWindow.Activate();
         };
+    }
+
+    private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+    {
+        RegistradorErrores.Registrar(e.Exception, "Excepcion no controlada en el hilo de la interfaz");
+
+        string mensaje = e.Exception is SqlException or InvalidOperationException
+            ? "Hubo un problema de conexión con la base de datos. Verifica que SQL Server esté disponible e intenta de nuevo."
+            : "Ocurrió un error inesperado. Se registró el detalle en el log de MARC TIME.";
+
+        MessageBox.Show(mensaje, "MARC TIME", MessageBoxButton.OK, MessageBoxImage.Error);
+
+        // Marca la excepcion como manejada: SIN esto, WPF cierra toda la
+        // app de golpe apenas termina este metodo (era el comportamiento
+        // que vimos en las Secciones 6 y 9 con los SqlException).
+        e.Handled = true;
     }
 
     protected override void OnExit(ExitEventArgs e)

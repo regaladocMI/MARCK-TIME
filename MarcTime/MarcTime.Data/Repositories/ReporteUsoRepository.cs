@@ -11,6 +11,56 @@ namespace MarcTime.Data.Repositories;
 /// </summary>
 public class ReporteUsoRepository : IReporteUsoRepository
 {
+
+    public List<UsoPorDia> ObtenerUsoPorDiaDeApp(int usuarioId, int aplicacionId, DateOnly fechaInicio, DateOnly fechaFin)
+    {
+        const string sql = """
+            SELECT r.Fecha, r.MinutosTotales
+            FROM ResumenUsoDiario r
+            INNER JOIN Aplicaciones a ON a.AplicacionId = r.AplicacionId
+            WHERE a.UsuarioId = @UsuarioId AND a.AplicacionId = @AplicacionId
+              AND r.Fecha BETWEEN @FechaInicio AND @FechaFin
+            ORDER BY r.Fecha;
+            """;
+
+        using var conexion = _fabricaConexion.CrearConexionAbierta();
+        return conexion.Query<UsoPorDia>(sql, new { UsuarioId = usuarioId, AplicacionId = aplicacionId, FechaInicio = fechaInicio, FechaFin = fechaFin }).ToList();
+    }
+
+    /// <summary>
+    /// Borra SesionesUso y ResumenUsoDiario de un dia especifico, dentro de
+    /// una transaccion (ambas tablas se borran juntas o ninguna se borra,
+    /// para no dejarlas inconsistentes entre si).
+    /// </summary>
+    public bool BorrarHistorialDia(int usuarioId, DateOnly fecha)
+    {
+        const string sqlSesiones = """
+            DELETE s FROM SesionesUso s
+            INNER JOIN Aplicaciones a ON a.AplicacionId = s.AplicacionId
+            WHERE a.UsuarioId = @UsuarioId AND CAST(s.FechaHoraInicio AS DATE) = @Fecha;
+            """;
+        const string sqlResumen = """
+            DELETE r FROM ResumenUsoDiario r
+            INNER JOIN Aplicaciones a ON a.AplicacionId = r.AplicacionId
+            WHERE a.UsuarioId = @UsuarioId AND r.Fecha = @Fecha;
+            """;
+
+        using var conexion = _fabricaConexion.CrearConexionAbierta();
+        using var transaccion = conexion.BeginTransaction();
+        try
+        {
+            conexion.Execute(sqlSesiones, new { UsuarioId = usuarioId, Fecha = fecha }, transaccion);
+            conexion.Execute(sqlResumen, new { UsuarioId = usuarioId, Fecha = fecha }, transaccion);
+            transaccion.Commit();
+            return true;
+        }
+        catch
+        {
+            transaccion.Rollback();
+            throw;
+        }
+    }
+
     private readonly IConexionFactory _fabricaConexion;
 
     public ReporteUsoRepository(IConexionFactory fabricaConexion)
