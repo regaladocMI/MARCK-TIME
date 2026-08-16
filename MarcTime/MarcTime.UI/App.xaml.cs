@@ -82,7 +82,11 @@ public partial class App : Application
                 new AplicacionRepository(fabricaConexion),
                 new RestriccionHorarioAppRepository(fabricaConexion),
                 UsuarioActivoId),
-            tareas: new TareasViewModel(),
+            tareas: new TareasViewModel(
+                new TareaRepository(fabricaConexion),
+                new CursoRepository(fabricaConexion),
+                new RecordatorioTareaRepository(fabricaConexion),
+                UsuarioActivoId),
             historial: new HistorialViewModel(),
             configuracion: new ConfiguracionViewModel());
 

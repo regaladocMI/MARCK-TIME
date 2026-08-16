@@ -1,0 +1,101 @@
+﻿<Window x:Class="MarcTime.UI.Vistas.EditarTareaWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Tarea"
+        Width="400" Height="680"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#1A1A1A">
+    <ScrollViewer Padding="20" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <TextBlock x:Name="TextoTitulo" Text="Nueva tarea" Foreground="White" FontSize="18" FontWeight="Bold" Margin="0,0,0,16"/>
+
+            <TextBlock Text="Título" Foreground="#AAAAAA" FontSize="12" Margin="0,0,0,4"/>
+            <TextBox x:Name="TextoTituloTarea" Padding="4" Margin="0,0,0,10"/>
+
+            <TextBlock Text="Descripción (opcional)" Foreground="#AAAAAA" FontSize="12" Margin="0,0,0,4"/>
+            <TextBox x:Name="TextoDescripcion" Padding="4" Height="60" AcceptsReturn="True" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+            <TextBlock Text="Curso (opcional)" Foreground="#AAAAAA" FontSize="12" Margin="0,0,0,4"/>
+            <ComboBox x:Name="ComboCurso" Margin="0,0,0,10"/>
+
+            <Grid Margin="0,0,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Fecha de entrega" Foreground="#AAAAAA" FontSize="12" Margin="0,0,0,4"/>
+                    <Grid>
+                        <TextBox x:Name="TextoFecha" Padding="4" GotFocus="Campo_GotFocus" LostFocus="Campo_LostFocus"/>
+                        <TextBlock x:Name="PlaceholderFecha" Text="20/08/2026" Foreground="#666666" Margin="6,4" IsHitTestVisible="False"/>
+                    </Grid>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Hora" Foreground="#AAAAAA" FontSize="12" Margin="0,0,0,4"/>
+                    <Grid>
+                        <TextBox x:Name="TextoHora" Padding="4" GotFocus="Campo_GotFocus" LostFocus="Campo_LostFocus"/>
+                        <TextBlock x:Name="PlaceholderHora" Text="23:59" Foreground="#666666" Margin="6,4" IsHitTestVisible="False"/>
+                    </Grid>
+                </StackPanel>
+            </Grid>
+            <TextBlock Text="Fecha dd/mm/aaaa, hora 24h (ej: 19:30)" Foreground="#666666" FontSize="10" Margin="0,-2,0,16"/>
+
+            <TextBlock Text="Prioridad" Foreground="#AAAAAA" FontSize="12" Margin="0,0,0,4"/>
+            <ComboBox x:Name="ComboPrioridad" Margin="0,0,0,16" SelectedIndex="1">
+                <ComboBoxItem Content="Baja"/>
+                <ComboBoxItem Content="Media"/>
+                <ComboBoxItem Content="Alta"/>
+            </ComboBox>
+
+            <TextBlock Text="Recordatorios" Foreground="#AAAAAA" FontSize="12" Margin="0,0,0,4"/>
+            <ItemsControl x:Name="ListaRecordatorios" Margin="0,0,0,8">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="#1F1F1F" CornerRadius="4" Padding="8,6" Margin="0,0,0,4">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding Descripcion}" Foreground="White" FontSize="12" VerticalAlignment="Center"/>
+                                <Button Grid.Column="1" Content="Quitar" FontSize="10" Padding="6,2"
+                                        Tag="{Binding}" Click="BotonQuitarRecordatorio_Click"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="60"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid Grid.Column="0">
+                    <TextBox x:Name="TextoValorRecordatorio" Padding="4" GotFocus="Campo_GotFocus" LostFocus="Campo_LostFocus"/>
+                    <TextBlock x:Name="PlaceholderValorRecordatorio" Text="1" Foreground="#666666" Margin="6,4" IsHitTestVisible="False"/>
+                </Grid>
+                <ComboBox x:Name="ComboUnidadRecordatorio" Grid.Column="2" SelectedIndex="1">
+                    <ComboBoxItem Content="Minutos"/>
+                    <ComboBoxItem Content="Horas"/>
+                    <ComboBoxItem Content="Días"/>
+                </ComboBox>
+                <Button Grid.Column="4" Content="+ Agregar" Padding="10,4" Click="BotonAgregarRecordatorio_Click"/>
+            </Grid>
+
+            <TextBlock x:Name="TextoError" Foreground="#FF5252" TextWrapping="Wrap" Margin="0,0,0,10" Visibility="Collapsed"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Cancelar" Click="BotonCancelar_Click" Padding="12,6" Margin="0,0,8,0"/>
+                <Button Content="Guardar" Click="BotonGuardar_Click" Padding="12,6"/>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

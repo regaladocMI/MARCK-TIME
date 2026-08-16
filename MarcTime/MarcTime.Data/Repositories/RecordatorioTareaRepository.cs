@@ -1,5 +1,6 @@
 ﻿using Dapper;
 using MarcTime.Core.Consultas;
+using MarcTime.Core.Models.Tareas;
 using MarcTime.Data.Conexion;
 
 namespace MarcTime.Data.Repositories;
@@ -11,6 +12,21 @@ namespace MarcTime.Data.Repositories;
 /// </summary>
 public class RecordatorioTareaRepository : IRecordatorioTareaRepository
 {
+
+    public List<RecordatorioTarea> ObtenerPorTarea(int tareaId)
+    {
+        const string sql = "SELECT * FROM RecordatoriosTarea WHERE TareaId = @TareaId ORDER BY MinutosAntelacion DESC;";
+        using var conexion = _fabricaConexion.CrearConexionAbierta();
+        return conexion.Query<Core.Models.Tareas.RecordatorioTarea>(sql, new { TareaId = tareaId }).ToList();
+    }
+
+    public bool Eliminar(long recordatorioTareaId)
+    {
+        const string sql = "DELETE FROM RecordatoriosTarea WHERE RecordatorioTareaId = @Id;";
+        using var conexion = _fabricaConexion.CrearConexionAbierta();
+        return conexion.Execute(sql, new { Id = recordatorioTareaId }) > 0;
+    }
+
     private static readonly int[] OffsetsPredeterminadosMinutos = { 4320, 1440, 120 }; // 3d, 1d, 2h
 
     private readonly IConexionFactory _fabricaConexion;
