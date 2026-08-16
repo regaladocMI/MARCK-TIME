@@ -48,7 +48,12 @@ public class GestorLimitesTiempoService
             int? restantes = estado.SegundosRestantes;
             if (restantes is null)
             {
-                continue; // sin limite configurado
+                continue;
+            }
+
+            if (!CierreAppService.EstaCorriendo(estado.NombreEjecutable))
+            {
+                continue; // no esta abierta, no hay nada que avisar ni cerrar
             }
 
             if (restantes <= 0)

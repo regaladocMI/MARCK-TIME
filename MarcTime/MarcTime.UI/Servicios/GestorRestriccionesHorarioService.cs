@@ -38,10 +38,16 @@ public class GestorRestriccionesHorarioService
 
         foreach (AppFueraDeHorario app in appsFueraDeHorario)
         {
+            if (!CierreAppService.EstaCorriendo(app.NombreEjecutable))
+            {
+                continue; // no esta abierta, no hay nada que avisar ni cerrar
+            }
+
             if (!_enProcesoDeCierre.Add(app.AplicacionId))
             {
-                continue; // ya se disparo el cierre para esta app, no repetir
+                continue;
             }
+            // ... el resto del metodo queda igual
 
             Debug.WriteLine($"FUERA DE HORARIO -> {app.NombreVisible}: no pertenece a ningun bloque activo ahora.");
 

@@ -13,6 +13,9 @@ public static class CierreAppService
 {
     private static readonly TimeSpan PeriodoGracia = TimeSpan.FromSeconds(15);
 
+    /// <summary>Verifica si hay al menos un proceso corriendo con ese nombre - para no avisar/cerrar una app que ni siquiera esta abierta.</summary>
+    public static bool EstaCorriendo(string nombreEjecutable) => ObtenerProcesos(nombreEjecutable).Length > 0;
+
     public static void SolicitarCierre(string nombreEjecutable)
     {
         Process[] procesos = ObtenerProcesos(nombreEjecutable);
